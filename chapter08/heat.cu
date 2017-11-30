@@ -15,7 +15,7 @@
 
 
 #include "../common/book.h"
-#include "../common/gpu_anim.h"
+#include "../common/image.h"
 
 #define DIM 1024
 #define MAX_TEMP 1.0f
@@ -89,55 +89,24 @@ struct DataBlock {
     float           *dev_inSrc;
     float           *dev_outSrc;
     float           *dev_constSrc;
+	unsigned char   *dev_show;
 
     cudaEvent_t     start, stop;
     float           totalTime;
     float           frames;
 };
 
-void anim_gpu( uchar4* outputBitmap, DataBlock *d, int ticks ) {
-    HANDLE_ERROR( cudaEventRecord( d->start, 0 ) );
-    dim3    blocks(DIM/16,DIM/16);
-    dim3    threads(16,16);
-
-    // since tex is global and bound, we have to use a flag to
-    // select which is in/out per iteration
-    volatile bool dstOut = true;
-    for (int i=0; i<90; i++) {
-        float   *in, *out;
-        if (dstOut) {
-            in  = d->dev_inSrc;
-            out = d->dev_outSrc;
-        } else {
-            out = d->dev_inSrc;
-            in  = d->dev_outSrc;
-        }
-        copy_const_kernel<<<blocks,threads>>>( in );
-        blend_kernel<<<blocks,threads>>>( out, dstOut );
-        dstOut = !dstOut;
-    }
-    float_to_color<<<blocks,threads>>>( outputBitmap,
-                                        d->dev_inSrc );
-
-    HANDLE_ERROR( cudaEventRecord( d->stop, 0 ) );
-    HANDLE_ERROR( cudaEventSynchronize( d->stop ) );
-    float   elapsedTime;
-    HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime,
-                                        d->start, d->stop ) );
-    d->totalTime += elapsedTime;
-    ++d->frames;
-    printf( "Average Time per frame:  %3.1f ms\n",
-            d->totalTime/d->frames  );
-}
 
 // clean up memory allocated on the GPU
-void anim_exit( DataBlock *d ) {
+void cleanup( DataBlock *d ) 
+{
     HANDLE_ERROR( cudaUnbindTexture( texIn ) );
     HANDLE_ERROR( cudaUnbindTexture( texOut ) );
     HANDLE_ERROR( cudaUnbindTexture( texConstSrc ) );
     HANDLE_ERROR( cudaFree( d->dev_inSrc ) );
     HANDLE_ERROR( cudaFree( d->dev_outSrc ) );
     HANDLE_ERROR( cudaFree( d->dev_constSrc ) );
+	HANDLE_ERROR( cudaFree( d->dev_show ) );
 
     HANDLE_ERROR( cudaEventDestroy( d->start ) );
     HANDLE_ERROR( cudaEventDestroy( d->stop ) );
@@ -146,7 +115,7 @@ void anim_exit( DataBlock *d ) {
 
 int main( void ) {
     DataBlock   data;
-    GPUAnimBitmap bitmap( DIM, DIM, &data );
+    IMAGE bitmap( DIM, DIM );
     data.totalTime = 0;
     data.frames = 0;
     HANDLE_ERROR( cudaEventCreate( &data.start ) );
@@ -155,6 +124,8 @@ int main( void ) {
     int imageSize = bitmap.image_size();
 
     // assume float == 4 chars in size (ie rgba)
+	HANDLE_ERROR( cudaMalloc( (void**)&data.dev_show,
+                              imageSize ) );
     HANDLE_ERROR( cudaMalloc( (void**)&data.dev_inSrc,
                               imageSize ) );
     HANDLE_ERROR( cudaMalloc( (void**)&data.dev_outSrc,
@@ -176,7 +147,8 @@ int main( void ) {
 
     // intialize the constant data
     float *temp = (float*)malloc( imageSize );
-    for (int i=0; i<DIM*DIM; i++) {
+    for (int i=0; i<DIM*DIM; i++) 
+	{
         temp[i] = 0;
         int x = i % DIM;
         int y = i / DIM;
@@ -187,8 +159,10 @@ int main( void ) {
     temp[DIM*700+100] = MIN_TEMP;
     temp[DIM*300+300] = MIN_TEMP;
     temp[DIM*200+700] = MIN_TEMP;
-    for (int y=800; y<900; y++) {
-        for (int x=400; x<500; x++) {
+    for (int y=800; y<900; y++) 
+	{
+        for (int x=400; x<500; x++) 
+		{
             temp[x+y*DIM] = MIN_TEMP;
         }
     }
@@ -197,8 +171,10 @@ int main( void ) {
                               cudaMemcpyHostToDevice ) );    
 
     // initialize the input data
-    for (int y=800; y<DIM; y++) {
-        for (int x=0; x<200; x++) {
+    for (int y=800; y<DIM; y++) 
+	{
+        for (int x=0; x<200; x++) 
+		{
             temp[x+y*DIM] = MAX_TEMP;
         }
     }
@@ -207,6 +183,62 @@ int main( void ) {
                               cudaMemcpyHostToDevice ) );
     free( temp );
 
-    bitmap.anim_and_exit( (void (*)(uchar4*,void*,int))anim_gpu,
-                           (void (*)(void*))anim_exit );
+
+
+    int ticks=0;
+    bitmap.show_image(30);
+    while(1)
+    {
+        HANDLE_ERROR( cudaEventRecord( data.start, 0 ) );
+        dim3    blocks(DIM/16,DIM/16);
+        dim3    threads(16,16);
+
+        // since tex is global and bound, we have to use a flag to
+        // select which is in/out per iteration
+        volatile bool dstOut = true;
+        for (int i=0; i<90; i++) 
+		{
+            float   *in, *out;
+            if (dstOut) 
+			{
+                in  = data.dev_inSrc;
+                out = data.dev_outSrc;
+            } 
+			else 
+			{
+                out = data.dev_inSrc;
+                in  = data.dev_outSrc;
+            }
+            copy_const_kernel<<<blocks,threads>>>( in );
+            blend_kernel<<<blocks,threads>>>( out, dstOut );
+            dstOut = !dstOut;
+        }
+
+        float_to_color<<<blocks,threads>>>( data.dev_show,
+                                            data.dev_inSrc );
+
+		HANDLE_ERROR( cudaMemcpy( bitmap.get_ptr(), data.dev_show,
+                            imageSize,
+                            cudaMemcpyDeviceToHost ) );
+
+        HANDLE_ERROR( cudaEventRecord( data.stop, 0 ) );
+        HANDLE_ERROR( cudaEventSynchronize( data.stop ) );
+        float   elapsedTime;
+        HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime,
+                                            data.start, data.stop ) );
+        data.totalTime += elapsedTime;
+        ++data.frames;
+        printf( "Average Time per frame:  %3.1f ms\n",
+                data.totalTime/data.frames  );
+
+        ticks++;
+        char key = bitmap.show_image(30);
+        if(key==27)
+        {
+            break;
+        }
+    }
+
+    cleanup(&data);
+    return 0;
 }

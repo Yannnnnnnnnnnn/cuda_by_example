@@ -16,7 +16,7 @@
 
 #include "cuda.h"
 #include "../common/book.h"
-#include "../common/cpu_bitmap.h"
+#include "../common/image.h"
 
 #define DIM 1024
 #define PI 3.1415926535897932f
@@ -53,7 +53,7 @@ struct DataBlock {
 
 int main( void ) {
     DataBlock   data;
-    CPUBitmap bitmap( DIM, DIM, &data );
+    IMAGE bitmap( DIM, DIM );
     unsigned char    *dev_bitmap;
 
     HANDLE_ERROR( cudaMalloc( (void**)&dev_bitmap,
@@ -70,7 +70,7 @@ int main( void ) {
                               
     HANDLE_ERROR( cudaFree( dev_bitmap ) );
                               
-    bitmap.display_and_exit();
+    bitmap.show_image();
 }
 
 

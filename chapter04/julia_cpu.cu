@@ -15,7 +15,7 @@
 
 
 #include "../common/book.h"
-#include "../common/cpu_bitmap.h"
+#include "../common/image.h"
 
 #define DIM 1000
 
@@ -65,11 +65,11 @@ void kernel( unsigned char *ptr ){
  }
 
 int main( void ) {
-    CPUBitmap bitmap( DIM, DIM );
+    IMAGE bitmap( DIM, DIM );
     unsigned char *ptr = bitmap.get_ptr();
 
     kernel( ptr );
 
-    bitmap.display_and_exit();
+    bitmap.show_image();
 }
 

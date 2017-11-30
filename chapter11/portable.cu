@@ -67,7 +67,8 @@ struct DataStruct {
 };
 
 
-void* routine( void *pvoidData ) {
+CUT_THREADPROC  routine( void *pvoidData ) 
+{
     DataStruct  *data = (DataStruct*)pvoidData;
     if (data->deviceID != 0) {
         HANDLE_ERROR( cudaSetDevice( data->deviceID ) );

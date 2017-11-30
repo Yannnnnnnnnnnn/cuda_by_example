@@ -16,7 +16,7 @@
 
 #include "cuda.h"
 #include "../common/book.h"
-#include "../common/cpu_anim.h"
+#include "../common/image.h"
 
 #define DIM 1024
 #define PI 3.1415926535897932f
@@ -42,19 +42,9 @@ __global__ void kernel( unsigned char *ptr, int ticks ) {
 
 struct DataBlock {
     unsigned char   *dev_bitmap;
-    CPUAnimBitmap  *bitmap;
+    IMAGE  *bitmap;
 };
 
-void generate_frame( DataBlock *d, int ticks ) {
-    dim3    blocks(DIM/16,DIM/16);
-    dim3    threads(16,16);
-    kernel<<<blocks,threads>>>( d->dev_bitmap, ticks );
-
-    HANDLE_ERROR( cudaMemcpy( d->bitmap->get_ptr(),
-                              d->dev_bitmap,
-                              d->bitmap->image_size(),
-                              cudaMemcpyDeviceToHost ) );
-}
 
 // clean up memory allocated on the GPU
 void cleanup( DataBlock *d ) {
@@ -63,12 +53,35 @@ void cleanup( DataBlock *d ) {
 
 int main( void ) {
     DataBlock   data;
-    CPUAnimBitmap  bitmap( DIM, DIM, &data );
+    IMAGE  bitmap( DIM, DIM );
     data.bitmap = &bitmap;
 
     HANDLE_ERROR( cudaMalloc( (void**)&data.dev_bitmap,
                               bitmap.image_size() ) );
 
-    bitmap.anim_and_exit( (void (*)(void*,int))generate_frame,
-                            (void (*)(void*))cleanup );
+    dim3    blocks(DIM/16,DIM/16);
+    dim3    threads(16,16);
+    
+    int ticks = 0;
+    bitmap.show_image(30);
+    while(1)
+    {
+        kernel<<<blocks,threads>>>( data.dev_bitmap, ticks );
+
+        HANDLE_ERROR( cudaMemcpy( data.bitmap->get_ptr(),
+                            data.dev_bitmap,
+                            data.bitmap->image_size(),
+                            cudaMemcpyDeviceToHost ) );
+
+        ticks++;
+        char key = bitmap.show_image(30);
+        if(key==27)
+        {
+            break;
+        }
+    }
+
+	cleanup(&data);
+
+	return 0;
 }

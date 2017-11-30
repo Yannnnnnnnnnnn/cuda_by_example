@@ -16,7 +16,7 @@
 
 #include "cuda.h"
 #include "../common/book.h"
-#include "../common/cpu_bitmap.h"
+#include "../common/image.h"
 
 #define DIM 1024
 
@@ -84,7 +84,7 @@ int main( void ) {
     HANDLE_ERROR( cudaEventCreate( &stop ) );
     HANDLE_ERROR( cudaEventRecord( start, 0 ) );
 
-    CPUBitmap bitmap( DIM, DIM, &data );
+    IMAGE bitmap( DIM, DIM);
     unsigned char   *dev_bitmap;
     Sphere          *s;
 
@@ -138,6 +138,6 @@ int main( void ) {
     HANDLE_ERROR( cudaFree( s ) );
 
     // display
-    bitmap.display_and_exit();
+    bitmap.show_image();
 }
 
