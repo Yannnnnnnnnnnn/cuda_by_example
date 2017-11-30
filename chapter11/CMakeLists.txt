@@ -1,0 +1,11 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+
+
+CUDA_ADD_EXECUTABLE(multidevice multidevice.cu)
+SET_PROPERTY(TARGET multidevice  PROPERTY FOLDER chapter11)
+
+CUDA_ADD_EXECUTABLE(portable portable.cu)
+SET_PROPERTY(TARGET portable  PROPERTY FOLDER chapter11)
+
+CUDA_ADD_EXECUTABLE(time_zero2 time_zero2.cu)
+SET_PROPERTY(TARGET time_zero2  PROPERTY FOLDER chapter11)

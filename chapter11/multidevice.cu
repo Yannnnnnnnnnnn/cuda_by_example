@@ -66,7 +66,7 @@ struct DataStruct {
 };
 
 
-void* routine( void *pvoidData ) {
+CUT_THREADROUTINE routine( void *pvoidData ) {
     DataStruct  *data = (DataStruct*)pvoidData;
     HANDLE_ERROR( cudaSetDevice( data->deviceID ) );
 
