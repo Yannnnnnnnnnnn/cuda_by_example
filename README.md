@@ -1,5 +1,10 @@
 cuda_by_example
 ----
+
+The SAD story is that these code only works in openGL 1.1. Be careful when using them.
+I have tested under windows and everything is okay.
+However it failed in the Ubuntu.
+
 The CMake version of cuda_by_example,the origin code comes from:https://developer.nvidia.com/cuda-example
 ![CUDA-by-Example](http://developer.download.nvidia.com/books/cuda-by-example/frontcover_100px.jpg)
 
