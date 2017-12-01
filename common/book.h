@@ -148,7 +148,7 @@ __global__ void float_to_color( uchar4 *optr,
 #endif
 
 //Create thread.
-CUTThread start_thread( CUT_THREADROUTINE, void *data );
+CUTThread start_thread( CUT_THREADROUTINE func, void *data );
 
 //Wait for thread to finish.
 void end_thread( CUTThread thread );
