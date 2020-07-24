@@ -10,7 +10,7 @@ SET(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/bin")
 
 #Find OpenCV
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+
 link_directories(${OpenCV_LIBRARY_DIRS})
 if(NOT OpenCV_FOUND)
     message(ERROR " OpenCV not found!")
@@ -29,6 +29,7 @@ if (CUDA_FOUND)
 	add_subdirectory(chapter08)
 	add_subdirectory(chapter09)
 	add_subdirectory(chapter10)
+	add_subdirectory(test)
 else()
 	message("CUDA not found!")
 endif()
